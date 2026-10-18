@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+tasks:
+  install-viewer:
+    desc: Install viewer node package
+    dir: ./viewer
+    cmds:
+      - npm install
+    sources:
+      - package.json
+    status:
+      - test -d node_modules
+  viewer:
+    desc: Run the UI node server
+    dir: ./viewer
+    deps: [install-viewer]
+    cmds:
+      - npm run dev

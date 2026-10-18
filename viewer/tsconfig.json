@@ -19,7 +19,7 @@
     ]
   },
   "include": [
-    "src",
+    "viewer/src",
     "vite.config.ts"
   ]
 }
