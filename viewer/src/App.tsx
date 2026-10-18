@@ -4,13 +4,47 @@ import { FlyScene } from './components/FlyScene';
 import { Environment } from './components/Environment';
 import { Attribution } from './components/Attribution';
 import { asset, loadAtlas, type Atlas } from './lib/atlas';
-import { frameAt, parseReplay, type ModelReplay } from './lib/replay';
+import { frameAt, parseReplay, type ModelReplay, type ActivityFrame } from './lib/replay';
 
 export function App() {
-  const [atlas,setAtlas] = useState<Atlas|null>(null);
-  const [error,setError] = useState('');
-  const [replay,setReplay] = useState<ModelReplay|null>(null);
-  const [playing,setPlaying] = useState(true), [time,setTime] = useState(0);
+  const [brainActivity, setBrainActivity] = useState<ActivityFrame | null>(null);
+
+  useEffect(() => {
+    const ws = new WebSocket('ws://127.0.0.1:8000/ws/brain-activity');
+
+    ws.onmessage = (event) => {
+      const frame = JSON.parse(event.data);
+      console.log(frame);
+      setBrainActivity(frame);
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
+  const [atlas, setAtlas] = useState<Atlas | null>(null);
+  const [error, setError] = useState('');
+  const [replay, setReplay] = useState<ModelReplay | null>(null);
+
+  const [playingState, setPlayingState] = useState(true);
+  const [streaming, setStreaming] = useState(false);
+  const [time, setTime] = useState(0);
+
+  // Custom setter for mutual exclusivity
+  const setPlaying = (value: boolean | ((prev: boolean) => boolean)) => {
+    setPlayingState(prev => {
+      const nextValue = typeof value === 'function' ? value(prev) : value;
+      if (nextValue) {
+        setStreaming(false);
+      }
+      return nextValue;
+    });
+  };
+  const playing = playingState;
   const file = useRef<HTMLInputElement>(null);
   const duration = replay?.frames.at(-1)?.time ?? 30;
   useEffect(() => {
@@ -40,12 +74,18 @@ export function App() {
     catch(e){setError(String(e));}
   };
   const frame = replay ? frameAt(replay,time) : null;
+  const streamButtonText = streaming ? "Stop streaming" : "Stream model"
+  const brainState = streaming ? brainActivity : frame
   return <>
     <header><h1>YOUR EXPERIMENT</h1><span>Environment / anatomy / model output</span><a href="https://github.com/cobanov/fly-connectome-template#readme">Template guide ↗</a></header>
     <main>
       <div className="toolbar">
         <span className="status">{playing?'Running':'Paused'} · {time.toFixed(2)} s</span>
         <div className="controls">
+          <button onClick={() => {
+            setStreaming(prev => !prev);
+            setPlaying(false);
+          }}>{streamButtonText}</button>
           <button onClick={()=>{setTime(0);setPlaying(false);}}>Reset</button>
           <button onClick={()=>{if(time>=duration)setTime(0);setPlaying(!playing);}}>{playing?'Pause':'Play'}</button>
           <button disabled={!atlas} onClick={()=>void example()}>Load synthetic example</button>
@@ -61,7 +101,7 @@ export function App() {
       <div className="workbench">
         <section className="panel environment-panel"><h2>01 / ENVIRONMENT</h2><Environment time={time}/><div className="panel-bottom">Generic stimulus · no game or reward function bundled</div></section>
         <section className="panel brain-panel"><h2>02 / BRAIN SOMA ATLAS <span>MaleCNS v1.0</span></h2>
-          {atlas?<BrainScene atlas={atlas} frame={frame}/>:<p className="loading" role="status">Loading measured anatomy…</p>}
+          {atlas?<BrainScene atlas={atlas} frame={brainState}/>:<p className="loading" role="status">Loading measured anatomy…</p>}
           <div className="panel-bottom">{atlas?.visibleIds.size.toLocaleString('en-US') ?? '…'} measured somata <a href={asset('data/brain-atlas/NOTICE.md')}>Data notice ↗</a></div>
         </section>
         <section className="panel fly-panel"><h2>03 / BODY <span>Flybody</span></h2><FlyScene/><div className="panel-bottom">Anatomical mesh · no motor simulation <span>Drag to rotate</span></div></section>

@@ -56,6 +56,7 @@ lint.ignore = [
     "G004",   # Logging statement uses f-string
     "PD901",  # Avoid using the generic variable name df for DataFrames
     "TRY003", # Avoid specifying long messages outside the exception class
+    "S311",   # We're not doing anything cryptographic
 ]
 
 show-fixes = true

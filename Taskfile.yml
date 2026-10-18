@@ -4,7 +4,7 @@ version: '3'
 
 tasks:
   install-viewer:
-    desc: Install viewer node package
+    desc: "Install viewer node package"
     dir: ./viewer
     cmds:
       - npm install
@@ -13,8 +13,21 @@ tasks:
     status:
       - test -d node_modules
   viewer:
-    desc: Run the UI node server
+    desc: "Run the UI node server"
     dir: ./viewer
-    deps: [install-viewer]
+    deps:
+      - install-viewer
     cmds:
       - npm run dev
+  brain-server:
+    desc: "Run the python brain model server"
+    dir: ./brain_models
+    cmds:
+      - uv run brain_models/server.py
+  start:
+    desc: "Start both frontend viewer and backend model server"
+    aliases:
+      - default
+    deps:
+      - brain-server
+      - viewer
