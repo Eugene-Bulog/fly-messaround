@@ -110,6 +110,9 @@ ENV/
 # ruff
 .ruff_cache/
 
+# taskfile
+.task/
+
 # IDE settings
 .vscode/
 .idea/
