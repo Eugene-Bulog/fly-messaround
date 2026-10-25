@@ -1,10 +1,10 @@
 [project]
 name = "brain-models"
 version = "0.1.0"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.143.5",
+    "typer>=0.27.3",
     "uvicorn[standard]>=0.54.0",
 ]
 

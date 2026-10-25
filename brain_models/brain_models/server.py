@@ -3,7 +3,10 @@ import json
 import logging
 import random
 from pathlib import Path
+from typing import Annotated
 
+import typer
+import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -54,7 +57,14 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         logging.exception("Connection closed")
 
 
-if __name__ == "__main__":
-    import uvicorn
+def run_server(
+    socket_port: Annotated[
+        int, typer.Option(help="Port to run the websocket app on.")
+    ] = 8000,
+) -> None:
+    """Run the brain server/websocket."""
+    uvicorn.run(app, host="127.0.0.1", port=socket_port)
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+if __name__ == "__main__":
+    typer.run(run_server)
