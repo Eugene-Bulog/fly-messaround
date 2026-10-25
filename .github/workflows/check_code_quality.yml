@@ -1,0 +1,62 @@
+name: Check Code Quality
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.ipynb'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - '**.ipynb'
+
+
+env:
+  PYTHON_VERSION: 3.12
+
+jobs:
+  perform-code-quality-checks:
+    permissions:
+      id-token: 'write'
+      contents: 'read'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Verify UV Installation
+        run: uv --version
+        shell: bash
+
+      - name: Install Dependencies
+        working-directory: .
+        run: |
+          uv sync
+        shell: bash
+
+      - name: Cache pre-commit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit/
+          key: ${{ runner.os }}-python-${{ env.PYTHON_VERSION }}-${{ hashFiles('./.pre-commit-config.yaml') }}
+
+      - name: Install pre-commit
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          uv run pre-commit install
+        shell: bash
+
+      - name: Run pre-commit
+        working-directory: .
+        run: uv run pre-commit run --all-files --verbose --color=always --config .pre-commit-config.yaml
+        shell: bash
