@@ -10,7 +10,7 @@ export function App() {
   const [brainActivity, setBrainActivity] = useState<ActivityFrame | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://' + __SOCKET_ADDRESS__);
+    const ws = new WebSocket('ws://' + import.meta.env.VITE_SOCKET_ADDRESS);
 
     ws.onmessage = (event) => {
       const frame = JSON.parse(event.data);
