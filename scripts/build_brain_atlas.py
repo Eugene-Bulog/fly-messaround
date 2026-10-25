@@ -1,14 +1,23 @@
-"""Export genuine MaleCNS soma positions. Run with: uv run --with pyarrow python scripts/build-brain-atlas.py SOURCE.feather"""
+"""Export genuine MaleCNS soma positions.
+
+Run with: uv run --with pyarrow python scripts/build_brain_atlas.py SOURCE.feather.
+"""
 
 import argparse
 import array
 import hashlib
 import json
+import logging
 import math
 import sys
 from pathlib import Path
 
 from pyarrow import feather
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig()
+logger.setLevel(logging.INFO)
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -23,7 +32,8 @@ source = args.source
 expected_sha256 = "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2"
 source_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
 if source_sha256 != expected_sha256:
-    raise ValueError("Source differs from the pinned MaleCNS v1.0 annotation file")
+    msg = "Source differs from the pinned MaleCNS v1.0 annotation file"
+    raise ValueError(msg)
 out = Path(__file__).resolve().parents[1] / "public/data/brain-atlas"
 if not args.check:
     out.mkdir(parents=True, exist_ok=True)
@@ -66,9 +76,11 @@ classes = {
         "efferent_ascending",
     ],
 }
-labels = list(classes) + ["other"]
+labels = [*classes, "other"]
 colors = ["#81b5c8", "#cfcac0", "#dfb672", "#af9bc3", "#6c7777"]
 points = []
+
+soma_loc_len = 3
 for row in rows:
     if row["status"] != "Traced" or not row["somaLocation"]:
         continue
@@ -76,8 +88,9 @@ for row in rows:
         (k for k, values in classes.items() if row["superclass"] in values), "other"
     )
     loc = row["somaLocation"]
-    if len(loc) != 3 or not all(math.isfinite(v) for v in loc):
-        raise ValueError(f"Invalid source coordinates for body {row['bodyId']}")
+    if len(loc) != soma_loc_len or not all(math.isfinite(v) for v in loc):
+        msg = f"Invalid source coordinates for body {row['bodyId']}"
+        raise ValueError(msg)
     points.append((row["bodyId"], *loc, labels.index(group)))
 points.sort(key=lambda p: p[0])
 positions = array.array("f", [v for p in points for v in p[1:4]])
@@ -86,9 +99,11 @@ if sys.byteorder != "little":
     positions.byteswap()
     ids.byteswap()
 if len(set(ids)) != len(ids):
-    raise ValueError("Duplicate body IDs")
+    msg = "Duplicate body IDs"
+    raise ValueError(msg)
 if list(positions) != [v for p in points for v in p[1:4]]:
-    raise ValueError("Float32 export would alter source coordinate values")
+    msg = "Float32 export would alter source coordinate values"
+    raise ValueError(msg)
 exports = {
     "positions.bin": positions.tobytes(),
     "ids.bin": ids.tobytes(),
@@ -101,7 +116,10 @@ meta = {
     "tracedWithoutSoma": sum(
         r["status"] == "Traced" and not r["somaLocation"] for r in rows
     ),
-    "selection": "All Traced annotations with measured somaLocation. No invented positions. The renderer includes only optic, central and descending groups; VNC-associated and unclassified somata are not shown.",
+    "selection": "All Traced annotations with measured somaLocation. No invented "
+    "positions. "
+    "The renderer includes only optic, central and descending groups; "
+    "VNC-associated and unclassified somata are not shown.",
     "coordinateUnits": "8 nm voxels, native MaleCNS EM space",
     "byteOrder": "little-endian",
     "files": {"positions": "positions.bin", "ids": "ids.bin", "groups": "groups.bin"},
@@ -109,24 +127,33 @@ meta = {
         {"id": i, "key": k, "color": colors[i], "count": sum(p[4] == i for p in points)}
         for i, k in enumerate(labels)
     ],
-    "source": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-annotations-male-cns-v1.0-minconf-0.5.feather",
+    "source": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data"
+    "/flat-connectome/body-annotations-male-cns-v1.0-minconf-0.5.feather",
     "sourceSha256": source_sha256,
     "exportSha256": {
         name: hashlib.sha256(data).hexdigest() for name, data in exports.items()
     },
     "groupSuperclasses": classes,
     "reference": "https://male-cns.janelia.org/download/",
-    "displayTransform": "Native (x, y, z) to (x, -y, -z); bounding-box centering; one uniform scale 5/max(axis extents); rigid view rotation. Orthographic projection. No per-axis normalization.",
-    "pointMeaning": "One curated somaLocation per Traced body ID; point size is a display marker, not anatomical cell size.",
-    "limitations": "Soma locations only, not neurites or the synaptic connectivity graph. Brain selection is superclass-based, not a complete anatomical brain segmentation. The video/game overlay is illustrative and not measured or predicted neural activity.",
+    "displayTransform": "Native (x, y, z) to (x, -y, -z); bounding-box centering; "
+    "one uniform scale 5/max(axis extents); rigid view rotation. Orthographic "
+    "projection. No per-axis normalization.",
+    "pointMeaning": "One curated somaLocation per Traced body ID; point size is a "
+    "display marker, not anatomical cell size.",
+    "limitations": "Soma locations only, not neurites or the synaptic connectivity "
+    "graph. Brain selection is superclass-based, not a complete anatomical brain "
+    "segmentation. The video/game overlay is illustrative and not measured or "
+    "predicted neural activity.",
     "license": "CC BY 4.0",
-    "attribution": "FlyEM / HHMI Janelia, University of Cambridge, MRC Laboratory of Molecular Biology, and Google Research",
+    "attribution": "FlyEM / HHMI Janelia, University of Cambridge, MRC Laboratory "
+    "of Molecular Biology, and Google Research",
     "activity": "Anatomy only. No measured or predicted neural activity is bundled.",
 }
 brain = [p for p in points if p[4] < labels.index("vnc")]
 meta["brainCount"] = len(brain)
 meta["brainView"] = (
-    "Classified optic, central and descending somata only; excludes VNC-associated and unclassified somata."
+    "Classified optic, central and descending somata only; excludes VNC-associated "
+    "and unclassified somata."
 )
 meta["brainNativeBounds"] = {
     "min": [min(p[i] for p in brain) for i in (1, 2, 3)],
@@ -138,15 +165,27 @@ notice = (
         [
             "# MaleCNS v1.0 soma atlas",
             "Dataset creators: " + meta["attribution"] + ".",
-            "License: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). No endorsement of this application is implied.",
-            "Scientific project, publication and downloads: https://male-cns.janelia.org/download/",
+            "License: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). No "
+            "endorsement of this application is implied.",
+            "Scientific project, publication and downloads: "
+            "https://male-cns.janelia.org/download/",
             "Source: " + meta["source"],
             "Pinned source SHA-256: `" + source_sha256 + "`",
             meta["selection"],
-            f"The export contains {meta['count']:,} measured positions. The current brain view shows {meta['brainCount']:,} classified somata. {meta['tracedWithoutSoma']:,} Traced annotations without soma locations are omitted. Positions are never invented or substituted with tosomaLocation.",
-            "Changes: filtering, body-ID sorting, and lossless float32/uint32 binary export. The display centers, rigidly rotates, uniformly scales and colors the points. Source coordinates and IDs remain unchanged in the binaries. Marker size is not anatomical soma size.",
+            f"The export contains {meta['count']:,} measured positions. The current "
+            "brain view shows {meta['brainCount']:,} classified somata. "
+            "{meta['tracedWithoutSoma']:,} Traced annotations without soma "
+            "locations are omitted. Positions are never invented or substituted "
+            "with tosomaLocation.",
+            "Changes: filtering, body-ID sorting, and lossless float32/uint32 binary "
+            "export. The display centers, rigidly rotates, uniformly scales and colors "
+            "the points. Source coordinates and IDs remain unchanged in the binaries. "
+            "Marker size is not anatomical soma size.",
             meta["limitations"],
-            "Reproduce: `uv run --with pyarrow python scripts/build-brain-atlas.py SOURCE.feather`. Audit without writing: append `--check`. The audit requires the exact source hash and compares every output byte, including all positions and body IDs.",
+            "Reproduce: `uv run --with pyarrow python scripts/build_brain_atlas.py "
+            "SOURCE.feather`. Audit without writing: append `--check`. The audit "
+            "requires the exact source hash and compares every output byte, including "
+            "all positions and body IDs.",
         ]
     )
     + "\n"
@@ -155,10 +194,11 @@ exports["NOTICE.md"] = notice.encode()
 for name, data in exports.items():
     if args.check:
         if (out / name).read_bytes() != data:
-            raise ValueError(f"Export mismatch: {name}")
+            msg = f"Export mismatch: {name}"
+            raise ValueError(msg)
     else:
         (out / name).write_bytes(data)
-print(
+logger.info(
     json.dumps(
         {
             "mode": "verified" if args.check else "exported",

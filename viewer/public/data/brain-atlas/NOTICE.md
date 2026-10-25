@@ -18,4 +18,4 @@ Changes: filtering, body-ID sorting, and lossless float32/uint32 binary export. 
 
 Soma locations only, not neurites or the synaptic connectivity graph. Brain selection is superclass-based, not a complete anatomical brain segmentation. The video/game overlay is illustrative and not measured or predicted neural activity.
 
-Reproduce: `uv run --with pyarrow python scripts/build-brain-atlas.py SOURCE.feather`. Audit without writing: append `--check`. The audit requires the exact source hash and compares every output byte, including all positions and body IDs.
+Reproduce: `uv run --with pyarrow python scripts/build_brain_atlas.py SOURCE.feather`. Audit without writing: append `--check`. The audit requires the exact source hash and compares every output byte, including all positions and body IDs.
