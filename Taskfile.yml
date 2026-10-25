@@ -2,6 +2,10 @@
 
 version: '3'
 
+vars:
+  SOCKET_PORT: '8000'
+  SOCKET_ADDRESS: '127.0.0.1:{{.SOCKET_PORT}}/ws/brain-activity'
+
 tasks:
   install-viewer:
     desc: "Install viewer node package"
@@ -18,12 +22,12 @@ tasks:
     deps:
       - install-viewer
     cmds:
-      - npm run dev
+      - VITE_SOCKET_ADDRESS={{.SOCKET_ADDRESS}} npm run dev
   brain-server:
     desc: "Run the python brain model server"
     dir: ./brain_models
     cmds:
-      - uv run brain_models/server.py
+      - uv run brain_models/server.py --socket-port={{.SOCKET_PORT}}
   start:
     desc: "Start both frontend viewer and backend model server"
     aliases:

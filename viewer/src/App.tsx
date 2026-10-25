@@ -10,11 +10,10 @@ export function App() {
   const [brainActivity, setBrainActivity] = useState<ActivityFrame | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://127.0.0.1:8000/ws/brain-activity');
+    const ws = new WebSocket('ws://' + import.meta.env.VITE_SOCKET_ADDRESS);
 
     ws.onmessage = (event) => {
       const frame = JSON.parse(event.data);
-      console.log(frame);
       setBrainActivity(frame);
     };
 
