@@ -116,3 +116,8 @@ ENV/
 # IDE settings
 .vscode/
 .idea/
+
+# project specific
+brain.npz
+brain_meta.parquet
+atlas.npz
