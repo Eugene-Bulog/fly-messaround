@@ -23,9 +23,21 @@ tasks:
       - install-viewer
     cmds:
       - VITE_SOCKET_ADDRESS={{.SOCKET_ADDRESS}} npm run dev
+  download-brain:
+    desc: "Download the brain files"
+    dir: ./brain_models
+    cmds:
+      - uv run brain_models/victory_c_fly_brain/brain/fetch.py
+    status:
+      - |
+        test -e brain_models/victory_c_fly_brain/brain_meta.parquet &
+        test -e brain_models/victory_c_fly_brain/brain.npz &
+        test -e brain_models/victory_c_fly_brain/web_data/atlas.npz
   brain-server:
     desc: "Run the python brain model server"
     dir: ./brain_models
+    deps:
+      - download-brain
     cmds:
       - uv run brain_models/server.py --socket-port={{.SOCKET_PORT}}
   start:
