@@ -5,6 +5,7 @@ version: '3'
 vars:
   SOCKET_PORT: '8000'
   SOCKET_ADDRESS: '127.0.0.1:{{.SOCKET_PORT}}/ws/brain-activity'
+  BRAIN_SERVER_ARGS: ''
 
 tasks:
   install-viewer:
@@ -39,7 +40,7 @@ tasks:
     deps:
       - download-brain
     cmds:
-      - uv run brain_models/server.py --socket-port={{.SOCKET_PORT}}
+      - uv run brain_models/server.py --socket-port={{.SOCKET_PORT}} {{.BRAIN_SERVER_ARGS}}
   start:
     desc: "Start both frontend viewer and backend model server"
     aliases:
