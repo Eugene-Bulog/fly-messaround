@@ -20,7 +20,6 @@ class BrainLoop:
         brain,
         n_run,
         stim_idx,
-        readout_idx,
         params=None,
         device=None,
         seed=0,
@@ -36,9 +35,6 @@ class BrainLoop:
             silence=silence_idx,
         )
         self.B, self.N, self.dev = n_run, brain.n, self.engine.dev
-        self.readout_idx = torch.as_tensor(
-            np.asarray(readout_idx, dtype=np.int64), device=self.dev
-        )
         self.undriven = ~self.engine.is_input
         self._taken = torch.zeros_like(self.engine.count)
 
@@ -64,9 +60,16 @@ class BrainLoop:
         out, self._taken = now - self._taken, now
         return out
 
-    def run(self, ms):
+    def run(self, ms, readout_idx=None):
         """Advance by `ms`. Returns (readout spike counts (B, R) int32, spikes of undriven neurons (B,) int64)."""
         before = self.engine.count.clone()
         self.engine.run(ms)
         spikes = self.engine.count - before
-        return spikes[:, self.readout_idx], spikes[:, self.undriven].sum(1)
+
+        if readout_idx is not None:
+            readout_slice = torch.as_tensor(
+                np.asarray(readout_idx, dtype=np.int64), device=self.dev
+            )
+        else:
+            readout_slice = slice(None)
+        return spikes[:, readout_slice], spikes[:, self.undriven].sum(1)

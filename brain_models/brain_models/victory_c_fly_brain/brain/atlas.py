@@ -19,7 +19,7 @@ neuropils (gnathal ganglia, prow), else as "other".
 import numpy as np
 import pandas as pd
 
-from brain_models.victory_c_fly_brain.brain.connectome import ANNOTATIONS, ATLAS, META
+from brain_models.victory_c_fly_brain.brain.paths import ANNOTATIONS, ATLAS, META
 
 
 VOXEL_UM = 0.008  # male-CNS coordinates are 8 nm voxels (male-cns.janelia.org/download)
