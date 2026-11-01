@@ -30,6 +30,7 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
+        exclude: brain_models/victory_c_fly_brain/brain/
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
